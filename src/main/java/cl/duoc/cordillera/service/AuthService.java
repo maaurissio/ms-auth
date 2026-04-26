@@ -3,6 +3,7 @@ package cl.duoc.cordillera.service;
 import cl.duoc.cordillera.dto.LoginRequestDTO;
 import cl.duoc.cordillera.dto.LoginResponseDTO;
 import cl.duoc.cordillera.dto.RefreshTokenRequestDTO;
+import cl.duoc.cordillera.dto.RegisterRequestDTO;
 import cl.duoc.cordillera.dto.TokenValidationResponseDTO;
 import cl.duoc.cordillera.entity.Credencial;
 import cl.duoc.cordillera.entity.Token;
@@ -21,6 +22,8 @@ import java.util.UUID;
 
 
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.mindrot.jbcrypt.BCrypt;
+
 import io.smallrye.jwt.auth.principal.JWTParser;
 
 @ApplicationScoped
@@ -85,6 +88,21 @@ public class AuthService {
         );
     }
 
+
+    //REGISTRRO
+    @Transactional
+    public void register(RegisterRequestDTO request) {
+
+        Credencial credencial = new Credencial();
+
+        credencial.usuarioId = request.getUsuarioId();
+        credencial.email = request.getEmail();
+
+        String hash = BCrypt.hashpw(request.getPassword(), BCrypt.gensalt());
+        credencial.passwordHash = hash;
+
+        credencial.persist();
+    }
     //REFRESH TOKEN
     @Transactional
     public LoginResponseDTO refresh(RefreshTokenRequestDTO request) {
