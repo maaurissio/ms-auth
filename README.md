@@ -1,80 +1,204 @@
-# ms-auth
+# MS-Auth - Microservicio de Autenticación
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Microservicio de autenticación y autorización construido con **Quarkus** que proporciona gestión de credenciales, generación de JWT y validación de tokens para la plataforma Grupo Cordillera.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Características
 
-## Running the application in dev mode
+- ✅ Autenticación con email y contraseña
+- ✅ Generación de JWT (Access Token + Refresh Token)
+- ✅ Validación y refresco de tokens
+- ✅ Gestión segura de contraseñas (BCrypt)
+- ✅ Revocación de tokens
+- ✅ API REST documentada con Swagger UI
+- ✅ Base de datos PostgreSQL
+- ✅ Ejecutables nativos con GraalVM
 
-You can run your application in dev mode that enables live coding using:
+## Tecnologías Utilizadas
 
-```shell script
+- **Java 21**
+- **Quarkus 3.34.5** - Framework Java ultrarrápido
+- **PostgreSQL** - Base de datos relacional
+- **Hibernate ORM + Panache** - Persistencia de datos
+- **SmallRye JWT** - Manejo de tokens JWT
+- **Jackson** - Serialización JSON
+- **Hibernate Validator** - Validación de datos
+- **BCrypt** - Encriptación de contraseñas
+
+## Requisitos Previos
+
+- Java 21+
+- Maven 3.8+
+- PostgreSQL 12+
+- Docker (opcional, para ejecutar en contenedores)
+
+## Configuración Inicial
+
+### 1. Base de Datos
+
+Crear la base de datos con Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+### 2. Claves JWT
+
+El proyecto requiere claves pública y privada para firmar los JWT. Estas deben ubicarse en `src/main/resources/`:
+
+- `publicKey.pem`
+- `privateKey.pem`
+
+Para generar las claves:
+
+```bash
+# Generar clave privada
+openssl genrsa -out privateKey.pem 2048
+
+# Generar clave pública
+openssl rsa -in privateKey.pem -pubout -out publicKey.pem
+```
+
+## Ejecutar la Aplicación
+
+### Modo Desarrollo (con live reload)
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+La aplicación estará disponible en `http://localhost:8081`  
+Swagger UI: `http://localhost:8081/q/swagger-ui`  
+Dev UI: `http://localhost:8081/q/dev`
 
-## Packaging and running the application
+## Endpoints de API
 
-The application can be packaged using:
+### 1. Login
+**POST** `/auth/login`
 
-```shell script
-./mvnw package
+Autentica un usuario y retorna access token + refresh token.
+
+**Request:**
+```json
+{
+  "email": "admin@cordillera.cl",
+  "password": "123456"
+}
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+**Response (200 OK):**
+```json
+{
+  "usuarioId": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "admin@cordillera.cl",
+  "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+**Errores:**
+- `401 Unauthorized`: Email o contraseña inválidos
+- `401 Unauthorized`: Usuario no activo
 
-## Creating a native executable
+---
 
-You can create a native executable using:
+### 2. Refresh Token
+**POST** `/auth/refresh`
 
-```shell script
-./mvnw package -Dnative
+Obtiene un nuevo access token usando el refresh token.
+
+**Request:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
+**Response (200 OK):**
+```json
+{
+  "usuarioId": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "admin@cordillera.cl",
+  "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
 ```
 
-You can then execute your native executable with: `./target/ms-auth-1.0.0-SNAPSHOT-runner`
+**Errores:**
+- `401 Unauthorized`: Refresh token inválido o expirado
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
+---
 
-## Related Guides
+### 3. Validar Token
+**POST** `/auth/validate`
 
-- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Validate object properties (field, getter) and method parameters for your beans (REST, CDI, Jakarta Persistence)
-- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Document your REST APIs with OpenAPI - comes with Swagger UI
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplify your persistence code for Hibernate ORM via the active record or the repository pattern
-- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
+Valida un JWT y retorna información del usuario autenticado.
 
-## Provided Code
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+```
 
-### Hibernate ORM
+**Response (200 OK):**
+```json
+{
+  "valido": true,
+  "usuarioId": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "admin@cordillera.cl"
+}
+```
 
-Create your first JPA entity
+**Errores:**
+- `401 Unauthorized`: Token ausente o inválido
 
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
+---
 
+### 4. Logout
+**POST** `/auth/logout`
 
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
+Revoca el refresh token del usuario.
 
+**Request:**
+```json
+{
+  "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
 
-### REST
+**Response:** `204 No Content`
 
-Easily start your REST Web Services
+---
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+### 5. Health Check
+**GET** `/auth/health`
+
+Verifica que el microservicio esté activo.
+
+**Response:**
+```
+MS-Auth funcionando
+```
+
+## 🔐 Estructura del Proyecto
+
+```
+src/main/java/cl/duoc/cordillera/
+├── dto/                    # Data Transfer Objects
+│   ├── LoginRequestDTO
+│   ├── LoginResponseDTO
+│   ├── RefreshTokenRequestDTO
+│   └── TokenValidationResponseDTO
+├── entity/                 # Entidades JPA
+│   ├── Credencial
+│   └── Token
+├── enums/                  # Enumeraciones
+│   ├── EstadoUsuario
+│   └── TipoToken
+├── repository/             # Acceso a datos
+│   ├── CredencialRepository
+│   └── TokenRepository
+├── resource/               # REST Controllers
+│   └── AuthResource
+└── service/                # Lógica de negocio
+    ├── AuthService
+    └── JwtService
+```
