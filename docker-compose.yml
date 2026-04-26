@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: cordillera_pass
       POSTGRES_DB: db_auth
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - pgdata_auth:/var/lib/postgresql/data
     networks:
